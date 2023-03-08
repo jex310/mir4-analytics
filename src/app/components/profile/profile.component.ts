@@ -76,25 +76,21 @@ export class ProfileComponent implements OnInit {
     let data = this.lineChartData.labels.map((month) => {
       let prevDayPs;
       let yesterdayPs
-      let gainedPs = 0;
+
+      let powerscores =[];
       profile.updatedAts.forEach((date, idx) => {
         if (moment.unix(date).format('MMMM') === month && moment.unix(date).year() === yearToCheck) {
-          if (!prevDayPs) {
-            prevDayPs = profile.powerScores[idx];
-            yesterdayPs = profile.powerScores[idx];
-          } else {
-            if (profile.powerScores[idx] < yesterdayPs) {
-              yesterdayPs = profile.powerScores[idx];
-            } else {
-              gainedPs = (profile.powerScores[idx] - prevDayPs)  + gainedPs;
-              prevDayPs = profile.powerScores[idx];
-              yesterdayPs = profile.powerScores[idx];
-            }
-          }
+          powerscores.push(profile.powerScores[idx])
         }
-      })
+      });
 
-      return gainedPs
+      if (powerscores.length) {
+        let gainedPs = Math.max(...(powerscores)) - Math.min(...powerscores);
+        return gainedPs
+      } else {
+        return 0
+      }
+
     });
 
     this.lineChartData.datasets.push({
