@@ -72,11 +72,9 @@ export class ProfileComponent implements OnInit {
 
   prepChart(profile) {
     const yearToCheck = 2023;
-
+    const highestPsRecorded = 0;
     let data = this.lineChartData.labels.map((month) => {
-      let prevDayPs;
-      let yesterdayPs
-
+      let maxPsRecored = 0;
       let powerscores =[];
       profile.updatedAts.forEach((date, idx) => {
         if (moment.unix(date).format('MMMM') === month && moment.unix(date).year() === yearToCheck) {
@@ -85,7 +83,20 @@ export class ProfileComponent implements OnInit {
       });
 
       if (powerscores.length) {
-        let gainedPs = Math.max(...(powerscores)) - Math.min(...powerscores);
+        let minPs = Math.min(...powerscores);
+        let maxPs = Math.max(...(powerscores));
+        let prevMaxPs;
+        if (maxPs > maxPsRecored) {
+          prevMaxPs = maxPsRecored;
+          maxPsRecored = maxPs;
+        }
+
+        if (minPs < prevMaxPs) {
+          minPs = prevMaxPs;
+        }
+
+        let gainedPs = maxPsRecored - minPs;
+
         return gainedPs
       } else {
         return 0
