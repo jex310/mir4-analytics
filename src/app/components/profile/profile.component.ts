@@ -1,9 +1,12 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, Input, OnInit, ViewChild} from '@angular/core';
 import {UIRouterGlobals} from "@uirouter/angular";
 import {Mir4CollectionService} from "@services/mir4-collection.service";
 import {ProfileInterface} from "@interfaces/profile.interface";
 import {ChartConfiguration, ChartOptions, ChartType} from "chart.js";
 import moment from "moment";
+import {FormBuilder, FormControl, FormGroup} from "@angular/forms";
+import {BaseChartDirective} from "ng2-charts";
+import {catchError} from "rxjs";
 
 @Component({
   selector: 'app-profile',
@@ -11,7 +14,6 @@ import moment from "moment";
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
-  profile!: ProfileInterface;
   public lineChartData: ChartConfiguration<'line'>['data'] = {
     labels: [
       'January',
@@ -33,62 +35,73 @@ export class ProfileComponent implements OnInit {
     responsive: false
   };
   public lineChartLegend = true;
+  profiles: ProfileInterface[]  = [];
+  form: FormGroup;
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
   constructor(
     private uiRouterGlobals: UIRouterGlobals,
-    private mir4CollectionService: Mir4CollectionService
+    private mir4CollectionService: Mir4CollectionService,
+    private fb: FormBuilder
   ) {
   }
 
   ngOnInit() {
     const {ign} = this.uiRouterGlobals.params;
 
+    if (ign) {
+      this.addProfile(ign);
+    }
+
+    this.form = this.fb.group({
+      ign: new FormControl()
+    });
+  }
+
+  submit() {
+    this.addProfile(this.form.get('ign').value);
+  }
+
+  addProfile(ign) {
     this.mir4CollectionService.getProfileData(ign)
       .subscribe((profile) => {
-        this.profile = profile;
-        this.prepChart();
+        this.profiles.push(profile);
+        this.prepChart(profile);
       })
   }
 
-  prepChart() {
+  prepChart(profile) {
     const yearToCheck = 2023;
-    let startingPs;
 
-    let idx = 0;
-    let data = [0, 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0]
-    for (let date of this.profile.updatedAts) {
-      const year = moment.unix(date).year();
-      const month = moment.unix(date).format('MMMM')
-      if (year === yearToCheck) {
-        if (!startingPs) {
-          startingPs = this.profile.powerScores[idx];
-          idx++;
-          continue;
+    let data = this.lineChartData.labels.map((month) => {
+      let prevDayPs;
+      let yesterdayPs
+      let gainedPs = 0;
+      profile.updatedAts.forEach((date, idx) => {
+        if (moment.unix(date).format('MMMM') === month && moment.unix(date).year() === yearToCheck) {
+          if (!prevDayPs) {
+            prevDayPs = profile.powerScores[idx];
+            yesterdayPs = profile.powerScores[idx];
+          } else {
+            if (profile.powerScores[idx] < yesterdayPs) {
+              yesterdayPs = profile.powerScores[idx];
+            } else {
+              gainedPs = (profile.powerScores[idx] - prevDayPs)  + gainedPs;
+              prevDayPs = profile.powerScores[idx];
+              yesterdayPs = profile.powerScores[idx];
+            }
+          }
         }
+      })
 
-
-        const monthIdx = this.lineChartData.labels.findIndex((label) => label === month);
-        let dailyPS = this.profile.powerScores[idx];
-        let gainedPs = dailyPS - startingPs;
-
-        if (dailyPS < startingPs) {
-          gainedPs = 0;
-        }
-
-        data[monthIdx] = gainedPs + data[monthIdx];
-        startingPs = dailyPS;
-      }
-      idx++;
-    }
-
+      return gainedPs
+    });
 
     this.lineChartData.datasets.push({
-      data,
-      label: 'Monthly gained PS',
-      fill: true,
-      tension: 0.5,
-      borderColor: 'black',
-      backgroundColor: 'rgba(255,0,0,0.3)'
-    });
+      label: profile.name,
+      data
+    })
+
+    this.chart?.update()
   }
 }

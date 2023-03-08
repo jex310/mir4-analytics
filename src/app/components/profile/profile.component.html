@@ -1,12 +1,18 @@
-<ng-container *ngIf="profile">
-  <h3>{{profile.name}} | {{profile.clan}}</h3>
+<ng-container *ngFor="let profile of profiles">
+  <h3>{{profile.name}} | {{profile.clan}} | {{profile.serverName}}</h3>
+</ng-container>
 
-  <canvas baseChart width="400" height="400"
-          *ngIf="lineChartData.datasets.length"
+<form (ngSubmit)="submit()" [formGroup]="form">
+  <label>Compare with</label>&nbsp;
+  <input type="text" formControlName="ign" placeholder="Enter exact IGN"/>
+  <button type="submit">Add</button>
+</form>
+
+<ng-container *ngIf="lineChartData.datasets.length">
+  <canvas baseChart width="1000" height="400"
           [type]="'line'"
           [data]="lineChartData"
           [options]="lineChartOptions"
           [legend]="lineChartLegend">
   </canvas>
-
 </ng-container>

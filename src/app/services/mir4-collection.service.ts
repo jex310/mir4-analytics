@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import {HttpClient} from "@angular/common/http";
-import {map, Observable} from "rxjs";
+import {map, Observable, switchMap, throwError, of} from "rxjs";
 import {ProfileInterface} from "../interfaces/profile.interface";
 
 @Injectable({
@@ -18,6 +18,13 @@ export class Mir4CollectionService {
     const url = `${this.api_url}/profile/${ign}`;
     return this.httpClient.get(url)
       .pipe(
+        switchMap((res: {status, profile}) => {
+          if (res.status === 'error') {
+            return throwError(res)
+          }
+
+          return of(res)
+        }),
         map((res: any) => {
           return res.player
         })

@@ -26,7 +26,7 @@ import {NgChartsModule} from "ng2-charts";
       states: [
         {
           name: 'profile',
-          url: '/user/:ign',
+          url: '/user/:ign?',
           abstract: true,
           component: ProfileLayoutComponent,
         },
